@@ -1,7 +1,11 @@
 name = "ParseUnparseJSON"
 uuid = "40859c5b-0b20-40f4-a064-5a3f4f1805d0"
 authors = ["Neven Sajko <s@purelymail.com> and contributors"]
-version = "1.0.0-DEV"
+version = "1.0.0"
+
+[deps]
+ParseUnparse = "caaa8bb7-a042-43a4-a1c9-7594415e1478"
 
 [compat]
+ParseUnparse = "1"
 julia = "1.9"

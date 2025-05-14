@@ -1,7 +1,9 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+ParseUnparse = "caaa8bb7-a042-43a4-a1c9-7594415e1478"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Aqua = "0.8.9"
+ParseUnparse = "1"
 Test = "1.9"
