@@ -9,3 +9,6 @@ ParseUnparse = "caaa8bb7-a042-43a4-a1c9-7594415e1478"
 [compat]
 ParseUnparse = "1"
 julia = "1.9"
+
+[sources]
+ParseUnparse = {url = "https://github.com/JuliaIO/ParseUnparse.jl"}
