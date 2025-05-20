@@ -156,14 +156,14 @@ module ParseUnparseJSON
                     @goto string_error
                 end
             end
-            @label string_state_2
+            @label state_2
             let oc = lexer_state_consume!(lexer_state)
                 if isempty(oc)
                     @goto string_error
                 end
                 c = only(oc)
                 if character_does_not_need_escaping(c)
-                    @goto string_state_2
+                    @goto state_2
                 end
                 if c ∈ significant_characters.general.double_quote
                     @goto string_done  # state 3 is an accepting state (the only one) and has no outwards transitions
@@ -179,7 +179,7 @@ module ParseUnparseJSON
                 end
                 c = only(oc)
                 if c ∈ significant_characters.string.may_appear_escaped
-                    @goto string_state_2
+                    @goto state_2
                 end
                 if c ∉ significant_characters.string.may_appear_escaped_u
                     @goto string_error
@@ -195,7 +195,7 @@ module ParseUnparseJSON
                     @goto string_error
                 end
             end
-            @goto string_state_2
+            @goto state_2
             @label string_error
             ret = GrammarSymbolKinds.lexing_error_expected_string
             @label string_done
@@ -219,10 +219,10 @@ module ParseUnparseJSON
                 end
                 c = only(oc)
                 if c ∈ significant_characters.number.decimal_digit_zero
-                    @goto number_state_3
+                    @goto state_3
                 end
                 if c ∈ significant_characters.number.decimal_digit_nonzero
-                    @goto number_state_4
+                    @goto state_4
                 end
                 if c ∉ significant_characters.general.minus
                     @goto number_error
@@ -235,13 +235,13 @@ module ParseUnparseJSON
                 end
                 c = only(oc)
                 if c ∈ significant_characters.number.decimal_digit_nonzero
-                    @goto number_state_4
+                    @goto state_4
                 end
                 if c ∉ significant_characters.number.decimal_digit_zero
                     @goto number_error
                 end
             end
-            @label number_state_3  # accepting state
+            @label state_3  # accepting state
             let oc = lexer_state_peek!(lexer_state)
                 if isempty(oc)
                     @goto number_done
@@ -251,13 +251,13 @@ module ParseUnparseJSON
                 if c_is_decimal_separator || (c ∈ significant_characters.number.e)
                     lexer_state_consume!(lexer_state)
                     if c_is_decimal_separator
-                        @goto number_state_5
+                        @goto state_5
                     end
-                    @goto number_state_6
+                    @goto state_6
                 end
             end
             @goto number_done
-            @label number_state_4  # accepting state
+            @label state_4  # accepting state
             let oc = lexer_state_peek!(lexer_state)
                 if isempty(oc)
                     @goto number_done
@@ -268,16 +268,16 @@ module ParseUnparseJSON
                 if c_is_decimal_digit || c_is_decimal_separator || (c ∈ significant_characters.number.e)
                     lexer_state_consume!(lexer_state)
                     if c_is_decimal_digit
-                        @goto number_state_4
+                        @goto state_4
                     end
                     if c_is_decimal_separator
-                        @goto number_state_5
+                        @goto state_5
                     end
-                    @goto number_state_6
+                    @goto state_6
                 end
             end
             @goto number_done
-            @label number_state_5
+            @label state_5
             let oc = lexer_state_consume!(lexer_state)
                 if isempty(oc)
                     @goto number_error
@@ -286,7 +286,7 @@ module ParseUnparseJSON
                     @goto number_error
                 end
             end
-            @label number_state_7  # accepting state
+            @label state_7  # accepting state
             let oc = lexer_state_peek!(lexer_state)
                 if isempty(oc)
                     @goto number_done
@@ -296,20 +296,20 @@ module ParseUnparseJSON
                 if c_is_decimal_digit || (c ∈ significant_characters.number.e)
                     lexer_state_consume!(lexer_state)
                     if c_is_decimal_digit
-                        @goto number_state_7
+                        @goto state_7
                     end
-                    @goto number_state_6
+                    @goto state_6
                 end
             end
             @goto number_done
-            @label number_state_6
+            @label state_6
             let oc = lexer_state_consume!(lexer_state)
                 if isempty(oc)
                     @goto number_error
                 end
                 c = only(oc)
                 if c ∈ significant_characters.general.decimal_digit
-                    @goto number_state_9
+                    @goto state_9
                 end
                 if c ∉ significant_characters.number.sign
                     @goto number_error
@@ -324,14 +324,14 @@ module ParseUnparseJSON
                     @goto number_error
                 end
             end
-            @label number_state_9  # accepting state
+            @label state_9  # accepting state
             let oc = lexer_state_peek!(lexer_state)
                 if isempty(oc)
                     @goto number_done
                 end
                 if only(oc) ∈ significant_characters.general.decimal_digit
                     lexer_state_consume!(lexer_state)
-                    @goto number_state_9
+                    @goto state_9
                 end
             end
             @goto number_done
