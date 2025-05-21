@@ -7,7 +7,7 @@
 [![PkgEval](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/P/ParseUnparseJSON.svg)](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/P/ParseUnparseJSON.html)
 [![Aqua](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-Parse/unparse JSON. With perfect roundtripping. Type-stable. The drawback compared to other JSON parsing implemenentations is less convenient and lower-level interfaces.
+Parse/unparse JSON. With perfect roundtripping. Type-stable. The drawback compared to other JSON parsing implementations is less convenient and lower-level interfaces.
 
 ## REPL example
 
