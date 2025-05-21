@@ -1,5 +1,5 @@
 module ParseUnparseJSON
-    export GrammarSymbolKinds, ParserIdents
+    export GrammarSymbolKinds, TokenUtil, ParserIdents
     module GrammarSymbolKinds
         export GrammarSymbolKind, grammar_symbol_error_kinds
         using ParseUnparse.KindConstruction
@@ -55,7 +55,7 @@ module ParseUnparseJSON
         )
     end
     module TokenIterators
-        export TokenIterator
+        export TokenIterator, encode_string, decode_string
         using ParseUnparse.LexingUtil, ..GrammarSymbolKinds
         struct TokenIterator{T}
             character_iterator::T
@@ -412,6 +412,178 @@ module ParseUnparseJSON
                 end
             end
         end
+        function decode_hex(c::AbstractChar)
+            if c ∈ '0' : '9'
+                UInt8(c)::UInt8 - UInt8('0')
+            elseif c ∈ 'a' : 'f'
+                UInt8(c)::UInt8 - UInt8('a') + 0xa
+            elseif c ∈ 'A' : 'F'
+                UInt8(c)::UInt8 - UInt8('A') + 0xa
+            else
+                throw(ArgumentError("unexpected"))
+            end::UInt8
+        end
+        function unescape(c::AbstractChar)
+            if c ∈ ('"', '\\', '/')
+                Char(c)::Char
+            elseif c == 'b'
+                '\b'
+            elseif c == 'f'
+                '\f'
+            elseif c == 'n'
+                '\n'
+            elseif c == 'r'
+                '\r'
+            elseif c == 't'
+                '\t'
+            else
+                throw(ArgumentError("unknown"))
+            end::Char
+        end
+        function encode_string_single_char(out::IO, decoded::AbstractChar)
+            function g(n::UInt8)
+                Char(n + UInt8('0'))
+            end
+            function f(c::AbstractChar)
+                u = UInt8(c)::UInt8
+                lo = u & 0xf
+                hi = u >> 0x4
+                map(g, (hi, lo))
+            end
+            is_control = decoded < first(significant_characters.string.may_appear_unescaped_1)
+            is_quote = decoded == only(significant_characters.general.double_quote)
+            is_escaper = decoded == only(significant_characters.string.escaper)
+            if is_control || is_quote || is_escaper
+                print(out, '\\')
+                if is_control
+                    print(out, 'u')
+                    foreach(Base.Fix1(print, out), ('0', '0', f(decoded)...))
+                else
+                    print(out, decoded)
+                end
+            else
+                print(out, decoded)
+            end
+        end
+        function encode_string_no_quotes(out::IO, decoded)
+            foreach(Base.Fix1(encode_string_single_char, out), decoded)
+        end
+        """
+            encode_string(out::IO, decoded)::Nothing
+
+        Encode the `decoded` iterator as a JSON string, outputting to `out`.
+        """
+        function encode_string(out::IO, decoded)
+            q = only(significant_characters.general.double_quote)
+            print(out, q)
+            encode_string_no_quotes(out, decoded)
+            print(out, q)
+            nothing
+        end
+        """
+            decode_string(out::IO, encoded)::Bool
+
+        Decode the `encoded` iterator, interpreted as a JSON string, outputting to `out`.
+
+        Return `true` if and only if no error was encountered.
+        """
+        function decode_string(out::IO, encoded)
+            lexer_state = let ols = lexer_state_simple_new(encoded)
+                if ols === ()
+                    return false
+                end
+                only(ols)
+            end
+            dquot = significant_characters.general.double_quote
+            # This is a finite-state machine just like in `lex_string!`, but starting
+            # with an extra state to skip initial white space and ending with an extra
+            # state to check there's nothing except for white space at the end.
+            while true
+                oc = lexer_state_consume!(lexer_state)
+                if isempty(oc)
+                    return false
+                end
+                c = only(oc)
+                if c ∈ dquot
+                    break
+                end
+                if c ∉ significant_characters.general.whitespace
+                    return false
+                end
+            end
+            # state 1 is merged into the above
+            @label state_2
+            let oc = lexer_state_consume!(lexer_state)
+                if isempty(oc)
+                    return false
+                end
+                c = only(oc)
+                if character_does_not_need_escaping(c)
+                    print(out, c)
+                    @goto state_2
+                end
+                if c ∈ significant_characters.string.escaper
+                    @goto state_4
+                end
+                if c ∉ dquot
+                    return false
+                end
+            end
+            # state 3, accepting state, here also handles trailing white space
+            while true
+                oc = lexer_state_peek!(lexer_state)
+                if isempty(oc)
+                    return true
+                end
+                if only(oc) ∉ significant_characters.general.whitespace
+                    return false
+                end
+                lexer_state_consume!(lexer_state)
+            end
+            @label state_4
+            let oc = lexer_state_consume!(lexer_state)
+                if isempty(oc)
+                    return false
+                end
+                c = only(oc)
+                if c ∈ significant_characters.string.may_appear_escaped
+                    print(out, unescape(c))
+                    @goto state_2
+                end
+                if c ∉ significant_characters.string.may_appear_escaped_u
+                    return false
+                end
+            end
+            # states 5 to 8
+            let oc1 = lexer_state_consume!(lexer_state)
+                if isempty(oc1)
+                    return false
+                end
+                oc2 = lexer_state_consume!(lexer_state)
+                if isempty(oc2)
+                    return false
+                end
+                oc3 = lexer_state_consume!(lexer_state)
+                if isempty(oc3)
+                    return false
+                end
+                oc4 = lexer_state_consume!(lexer_state)
+                if isempty(oc4)
+                    return false
+                end
+                x1 = widen(decode_hex(only(oc1)))
+                x2 = widen(decode_hex(only(oc2)))
+                x3 = widen(decode_hex(only(oc3)))
+                x4 = widen(decode_hex(only(oc4)))
+                c = Char((((((x1 << 0x4) | x2) << 0x4) | x3) << 0x4) | x4)
+                print(out, c)
+            end
+            @goto state_2
+        end
+    end
+    module TokenUtil
+        export encode_string, decode_string
+        using ..TokenIterators
     end
     module ParserIdents
         export ParserIdent
